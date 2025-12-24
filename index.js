@@ -1,8 +1,9 @@
 const express = require("express");
-const mongoose = require("mongoose");
 const { initializeDatabase } = require("./db/db.connect");
 const LeadModel = require("./models/lead.model");
 const SalesAgentModel = require("./models/salesAgent.model");
+const { validateCreateLead } = require("./validations/lead.validation");
+const { default: mongoose } = require("mongoose");
 
 const app = express();
 initializeDatabase();
@@ -13,7 +14,6 @@ async function createNewLead(newLeadData) {
   const newLead = new LeadModel(newLeadData);
   const savedLead = await newLead.save();
   return savedLead;
-  // return await LeadModel.create(newLeadData);
 }
 
 // Creates a new lead.
@@ -23,57 +23,10 @@ app.post("/leads", async (req, res) => {
       req.body;
 
     // Validations
-    if (!name || typeof name !== "string") {
-      return res.status(400).json({
-        error: "Invalid input: 'name' is required.",
-      });
-    }
+    const validationError = validateCreateLead(req.body);
 
-    const allowedSources = [
-      "Website",
-      "Referral",
-      "Cold Call",
-      "Advertisement",
-      "Email",
-      "Other",
-    ];
-
-    if (!source || !allowedSources.includes(source)) {
-      return res.status(400).json({
-        error: "Invalid input: 'source' must be a valid value.",
-      });
-    }
-
-    if (!salesAgent || !mongoose.Types.ObjectId.isValid(salesAgent)) {
-      return res.status(400).json({ error: "Invalid salesAgent ID" });
-    }
-
-    const allowedStatuses = [
-      "New",
-      "Contacted",
-      "Qualified",
-      "Proposal Sent",
-      "Closed",
-    ];
-
-    if (status && !allowedStatuses.includes(status)) {
-      return res.status(400).json({
-        error: "Invalid input: 'status' is invalid.",
-      });
-    }
-
-    if (!Number.isInteger(timeToClose) || timeToClose <= 0) {
-      return res.status(400).json({
-        error: "Invalid input: 'timeToClose' must be a positive integer.",
-      });
-    }
-
-    const allowedPriorities = ["High", "Medium", "Low"];
-
-    if (priority && !allowedPriorities.includes(priority)) {
-      return res.status(400).json({
-        error: "Invalid input: 'priority' must be High, Medium, or Low.",
-      });
+    if (validationError) {
+      return res.status(400).json({ error: validationError });
     }
 
     // Sales Agent Check
@@ -113,6 +66,78 @@ app.post("/leads", async (req, res) => {
       createdAt: lead.createdAt,
       updatedAt: lead.updatedAt,
     });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ error: error.message, message: "Internal Server Error" });
+  }
+});
+
+async function getAllLeads(filters) {
+  return await LeadModel.find(filters);
+}
+
+// Fetches all leads with optional filtering.
+app.get("/leads", async (req, res) => {
+  try {
+    const { salesAgent, status, tags, source } = req.query;
+
+    // Validations
+    if (salesAgent && !mongoose.Types.ObjectId.isValid(salesAgent)) {
+      return res.status(400).json({ error: "Invalid salesAgent ID " });
+    }
+
+    const allowedStatuses = [
+      "New",
+      "Contacted",
+      "Qualified",
+      "Proposal Sent",
+      "Closed",
+    ];
+
+    if (status && !allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        error:
+          "Invalid input: 'status' must be one of ['New', 'Contacted', 'Qualified', 'Proposal Sent', 'Closed'].",
+      });
+    }
+
+    const allowedSources = [
+      "Website",
+      "Referral",
+      "Cold Call",
+      "Advertisement",
+      "Email",
+      "Other",
+    ];
+
+    if (source && !allowedSources.includes(source)) {
+      return res.status(400).json({
+        error:
+          "Invalid input: 'source' must be one of ['Website', 'Referral', 'Cold Call', 'Advertisement', 'Email', 'Other'].",
+      });
+    }
+
+    // Sales Agent Check
+    if (salesAgent) {
+      const agent = await SalesAgentModel.findById(salesAgent);
+      if (!agent) {
+        return res.status(404).json({
+          error: `Sales agent with ID '${salesAgent}' not found.`,
+        });
+      }
+    }
+
+    const filters = {};
+
+    if (salesAgent) filters.salesAgent = salesAgent;
+    if (source) filters.source = source;
+    if (status) filters.status = status;
+    if (tags) filters.tags = tags;
+
+    const leads = await getAllLeads(filters);
+
+    return res.status(200).json(leads);
   } catch (error) {
     return res
       .status(500)
