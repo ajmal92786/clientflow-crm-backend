@@ -77,4 +77,17 @@ function validateUpdateLead(params, body) {
   return validateCreateLead(body);
 }
 
-module.exports = { validateCreateLead, validateLeadQuery, validateUpdateLead };
+function validateDeleteLead(params) {
+  const { id } = params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return "Invalid lead ID";
+  }
+}
+
+module.exports = {
+  validateCreateLead,
+  validateLeadQuery,
+  validateUpdateLead,
+  validateDeleteLead,
+};

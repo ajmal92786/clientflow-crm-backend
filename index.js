@@ -6,6 +6,7 @@ const {
   validateCreateLead,
   validateLeadQuery,
   validateUpdateLead,
+  validateDeleteLead,
 } = require("./validations/lead.validation");
 
 const app = express();
@@ -194,6 +195,39 @@ app.put("/leads/:id", async (req, res) => {
       priority: updatedLead.priority,
       updatedAt: updatedLead.updatedAt,
     });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ error: error.message, message: "Internal Server Error" });
+  }
+});
+
+async function deleteLeadById(id) {
+  return await LeadModel.findByIdAndDelete(id);
+}
+
+// Deletes a specific lead by its ID.
+app.delete("/leads/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // validations
+    const validationError = validateDeleteLead(req.params);
+    if (validationError) {
+      return res.status(400).json({ error: validationError });
+    }
+
+    // Check Lead existance
+    const existingLead = await LeadModel.findById(id);
+    if (!existingLead) {
+      return res.status(404).json({
+        error: `Lead with ID '${id}' not found.`,
+      });
+    }
+
+    await deleteLeadById(id);
+
+    return res.status(200).json({ message: "Lead deleted successfully." });
   } catch (error) {
     return res
       .status(500)
