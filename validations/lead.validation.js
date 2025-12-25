@@ -45,6 +45,36 @@ function validateCreateLead(body) {
   if (priority && !allowedPriorities.includes(priority)) {
     return "Invalid input: 'priority' must be High, Medium, or Low.";
   }
+
+  return null;
 }
 
-module.exports = { validateCreateLead };
+function validateLeadQuery(query) {
+  const { salesAgent, status, source } = query;
+
+  if (salesAgent && !mongoose.Types.ObjectId.isValid(salesAgent)) {
+    return "Invalid salesAgent ID ";
+  }
+
+  if (status && !allowedStatuses.includes(status)) {
+    return "Invalid input: 'status' must be one of ['New', 'Contacted', 'Qualified', 'Proposal Sent', 'Closed'].";
+  }
+
+  if (source && !allowedSources.includes(source)) {
+    return "Invalid input: 'source' must be one of ['Website', 'Referral', 'Cold Call', 'Advertisement', 'Email', 'Other'].";
+  }
+
+  return null;
+}
+
+function validateUpdateLead(params, body) {
+  const { id } = params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return "Invalid lead ID";
+  }
+
+  return validateCreateLead(body);
+}
+
+module.exports = { validateCreateLead, validateLeadQuery, validateUpdateLead };

@@ -2,8 +2,11 @@ const express = require("express");
 const { initializeDatabase } = require("./db/db.connect");
 const LeadModel = require("./models/lead.model");
 const SalesAgentModel = require("./models/salesAgent.model");
-const { validateCreateLead } = require("./validations/lead.validation");
-const { default: mongoose } = require("mongoose");
+const {
+  validateCreateLead,
+  validateLeadQuery,
+  validateUpdateLead,
+} = require("./validations/lead.validation");
 
 const app = express();
 initializeDatabase();
@@ -74,7 +77,7 @@ app.post("/leads", async (req, res) => {
 });
 
 async function getAllLeads(filters) {
-  return await LeadModel.find(filters);
+  return await LeadModel.find(filters).populate("salesAgent", "name");
 }
 
 // Fetches all leads with optional filtering.
@@ -83,39 +86,10 @@ app.get("/leads", async (req, res) => {
     const { salesAgent, status, tags, source } = req.query;
 
     // Validations
-    if (salesAgent && !mongoose.Types.ObjectId.isValid(salesAgent)) {
-      return res.status(400).json({ error: "Invalid salesAgent ID " });
-    }
+    const validationError = validateLeadQuery(req.query);
 
-    const allowedStatuses = [
-      "New",
-      "Contacted",
-      "Qualified",
-      "Proposal Sent",
-      "Closed",
-    ];
-
-    if (status && !allowedStatuses.includes(status)) {
-      return res.status(400).json({
-        error:
-          "Invalid input: 'status' must be one of ['New', 'Contacted', 'Qualified', 'Proposal Sent', 'Closed'].",
-      });
-    }
-
-    const allowedSources = [
-      "Website",
-      "Referral",
-      "Cold Call",
-      "Advertisement",
-      "Email",
-      "Other",
-    ];
-
-    if (source && !allowedSources.includes(source)) {
-      return res.status(400).json({
-        error:
-          "Invalid input: 'source' must be one of ['Website', 'Referral', 'Cold Call', 'Advertisement', 'Email', 'Other'].",
-      });
+    if (validationError) {
+      return res.status(400).json({ error: validationError });
     }
 
     // Sales Agent Check
@@ -137,7 +111,89 @@ app.get("/leads", async (req, res) => {
 
     const leads = await getAllLeads(filters);
 
-    return res.status(200).json(leads);
+    const formattedLeads = leads.map((lead) => ({
+      id: lead._id,
+      name: lead.name,
+      source: lead.source,
+      salesAgent: {
+        id: lead.salesAgent._id,
+        name: lead.salesAgent.name,
+      },
+      status: lead.status,
+      tags: lead.tags,
+      timeToClose: lead.timeToClose,
+      priority: lead.priority,
+      createdAt: lead.createdAt,
+    }));
+
+    return res.status(200).json(formattedLeads);
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ error: error.message, message: "Internal Server Error" });
+  }
+});
+
+async function updateLeadById(leadId, dataToUpdate) {
+  return await LeadModel.findByIdAndUpdate(leadId, dataToUpdate, {
+    new: true,
+  }).populate("salesAgent", "name");
+}
+
+// Updates a lead with new information.
+app.put("/leads/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { name, source, salesAgent, status, tags, timeToClose, priority } =
+      req.body;
+
+    // Validations
+    const validationError = validateUpdateLead(req.params, req.body);
+
+    if (validationError) {
+      return res.status(400).json({ error: validationError });
+    }
+
+    // Check Lead existance
+    const existingLead = await LeadModel.findById(id);
+    if (!existingLead) {
+      return res.status(404).json({
+        error: `Lead with ID '${id}' not found.`,
+      });
+    }
+
+    // Check sales agent existance
+    const agent = await SalesAgentModel.findById(salesAgent);
+    if (!agent) {
+      return res.status(404).json({
+        error: `Sales agent with ID '${salesAgent}' not found.`,
+      });
+    }
+
+    const updatedLead = await updateLeadById(id, {
+      name,
+      source,
+      salesAgent,
+      status,
+      tags: Array.isArray(tags) ? tags : [],
+      timeToClose,
+      priority,
+    });
+
+    return res.status(200).json({
+      id: updatedLead._id,
+      name: updatedLead.name,
+      source: updatedLead.source,
+      salesAgent: {
+        id: updatedLead.salesAgent._id,
+        name: updatedLead.salesAgent.name,
+      },
+      status: updatedLead.status,
+      tags: updatedLead.tags,
+      timeToClose: updatedLead.timeToClose,
+      priority: updatedLead.priority,
+      updatedAt: updatedLead.updatedAt,
+    });
   } catch (error) {
     return res
       .status(500)
