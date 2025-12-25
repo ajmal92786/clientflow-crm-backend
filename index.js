@@ -8,6 +8,7 @@ const {
   validateUpdateLead,
   validateDeleteLead,
 } = require("./validations/lead.validation");
+const { validateCreateAgent } = require("./validations/agent.validation");
 
 const app = express();
 initializeDatabase();
@@ -228,6 +229,43 @@ app.delete("/leads/:id", async (req, res) => {
     await deleteLeadById(id);
 
     return res.status(200).json({ message: "Lead deleted successfully." });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ error: error.message, message: "Internal Server Error" });
+  }
+});
+
+async function createNewSalesAgent(name, email) {
+  return await SalesAgentModel.create({ name, email });
+}
+
+// Create a New Sales Agent
+app.post("/agents", async (req, res) => {
+  try {
+    const { name, email } = req.body;
+
+    // Validations
+    const validationError = validateCreateAgent(req.body);
+    if (validationError) {
+      return res.status(400).json({ error: validationError });
+    }
+
+    const existingAgentWithEmail = await SalesAgentModel.findOne({ email });
+    if (existingAgentWithEmail) {
+      return res.status(409).json({
+        error: `Sales agent with email '${email}' already exists.`,
+      });
+    }
+
+    const agent = await createNewSalesAgent(name, email);
+
+    return res.status(201).json({
+      id: agent._id,
+      name: agent.name,
+      email: agent.email,
+      createdAt: agent.createdAt,
+    });
   } catch (error) {
     return res
       .status(500)

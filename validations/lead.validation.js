@@ -19,6 +19,10 @@ const allowedStatuses = [
 
 const allowedPriorities = ["High", "Medium", "Low"];
 
+function isObjectIdValid(id) {
+  return mongoose.Types.ObjectId.isValid(id);
+}
+
 function validateCreateLead(body) {
   const { name, source, salesAgent, status, timeToClose, priority } = body;
 
@@ -30,7 +34,7 @@ function validateCreateLead(body) {
     return "Invalid input: 'source' must be a valid value.";
   }
 
-  if (!salesAgent || !mongoose.Types.ObjectId.isValid(salesAgent)) {
+  if (!salesAgent || !isObjectIdValid(salesAgent)) {
     return "Invalid salesAgent ID";
   }
 
@@ -52,7 +56,7 @@ function validateCreateLead(body) {
 function validateLeadQuery(query) {
   const { salesAgent, status, source } = query;
 
-  if (salesAgent && !mongoose.Types.ObjectId.isValid(salesAgent)) {
+  if (salesAgent && !isObjectIdValid(salesAgent)) {
     return "Invalid salesAgent ID ";
   }
 
@@ -70,7 +74,7 @@ function validateLeadQuery(query) {
 function validateUpdateLead(params, body) {
   const { id } = params;
 
-  if (!mongoose.Types.ObjectId.isValid(id)) {
+  if (!isObjectIdValid(id)) {
     return "Invalid lead ID";
   }
 
@@ -80,7 +84,7 @@ function validateUpdateLead(params, body) {
 function validateDeleteLead(params) {
   const { id } = params;
 
-  if (!mongoose.Types.ObjectId.isValid(id)) {
+  if (!isObjectIdValid(id)) {
     return "Invalid lead ID";
   }
 }
