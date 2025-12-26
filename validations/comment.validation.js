@@ -14,4 +14,10 @@ function validateCreateComment(leadId, commentText) {
   }
 }
 
-module.exports = { validateCreateComment };
+function validateGetComments(leadId) {
+  if (!isObjectIdValid(leadId)) {
+    return "Lead ID must be a valid ObjectId.";
+  }
+}
+
+module.exports = { validateCreateComment, validateGetComments };

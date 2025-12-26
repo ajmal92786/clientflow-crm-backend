@@ -10,7 +10,10 @@ const {
   validateDeleteLead,
 } = require("./validations/lead.validation");
 const { validateCreateAgent } = require("./validations/agent.validation");
-const { validateCreateComment } = require("./validations/comment.validation");
+const {
+  validateCreateComment,
+  validateGetComments,
+} = require("./validations/comment.validation");
 
 const app = express();
 initializeDatabase();
@@ -333,6 +336,38 @@ app.post("/leads/:id/comments", async (req, res) => {
       author: commit.author.name,
       createdAt: commit.createdAt,
     });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ error: error.message, message: "Internal Server Error" });
+  }
+});
+
+async function getCommentsByLeadID(leadId) {
+  return await CommitModel.find({ lead: leadId }).populate("author", "name");
+}
+
+// Get All Comments for a Lead
+app.get("/leads/:id/comments", async (req, res) => {
+  try {
+    const leadId = req.params.id;
+
+    // Validations
+    const validationError = validateGetComments(leadId);
+    if (validationError) {
+      return res.status(400).json({ error: validationError });
+    }
+
+    const comments = await getCommentsByLeadID(leadId);
+
+    const formattedComments = comments.map((comment) => ({
+      id: comment._id,
+      commentText: comment.commentText,
+      author: comment.author.name,
+      createdAt: comment.createdAt,
+    }));
+
+    return res.status(200).json(formattedComments);
   } catch (error) {
     return res
       .status(500)
