@@ -273,6 +273,29 @@ app.post("/agents", async (req, res) => {
   }
 });
 
+async function getAllAgents() {
+  return await SalesAgentModel.find();
+}
+
+// Fetches all sales agents.
+app.get("/agents", async (req, res) => {
+  try {
+    const agents = await getAllAgents();
+
+    const formattedAgents = agents.map((agent) => ({
+      id: agent._id,
+      name: agent.name,
+      email: agent.email,
+    }));
+
+    return res.status(200).json(formattedAgents);
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ error: error.message, message: "Internal Server Error" });
+  }
+});
+
 app.get("/", (req, res) => {
   res.send({ status: "ok", message: "Clientflow CRM backend running." });
 });
