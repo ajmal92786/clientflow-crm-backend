@@ -394,7 +394,7 @@ async function getLeadsClosedLastWeek() {
   return await LeadModel.find({
     status: "Closed",
     closedAt: { $gte: savenDaysAgo },
-  });
+  }).populate("salesAgent", "name");
 }
 
 // Get Leads Closed Last Week
@@ -405,11 +405,28 @@ app.get("/report/last-week", async (req, res) => {
     const formattedClosedLeads = closedLeads.map((lead) => ({
       id: lead._id,
       name: lead.name,
-      salesAgent: lead.salesAgent,
+      salesAgent: lead.salesAgent.name,
       closedAt: lead.closedAt,
     }));
 
     return res.status(200).json(formattedClosedLeads);
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ error: error.message, message: "Internal Server Error" });
+  }
+});
+
+async function getTotalLeadsInPipeline() {
+  return await LeadModel.countDocuments({ status: { $ne: "Closed" } });
+}
+
+// Get Total Leads in Pipeline
+app.get("/report/pipeline", async (req, res) => {
+  try {
+    const totalLeadsInPipeline = await getTotalLeadsInPipeline();
+
+    return res.status(200).json({ totalLeadsInPipeline });
   } catch (error) {
     return res
       .status(500)
