@@ -2,6 +2,7 @@ const express = require("express");
 const { initializeDatabase } = require("./db/db.connect");
 const LeadModel = require("./models/lead.model");
 const SalesAgentModel = require("./models/salesAgent.model");
+const CommitModel = require("./models/comment.model");
 const {
   validateCreateLead,
   validateLeadQuery,
@@ -9,6 +10,7 @@ const {
   validateDeleteLead,
 } = require("./validations/lead.validation");
 const { validateCreateAgent } = require("./validations/agent.validation");
+const { validateCreateComment } = require("./validations/comment.validation");
 
 const app = express();
 initializeDatabase();
@@ -289,6 +291,48 @@ app.get("/agents", async (req, res) => {
     }));
 
     return res.status(200).json(formattedAgents);
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ error: error.message, message: "Internal Server Error" });
+  }
+});
+
+async function createNewCommit(commitData) {
+  return (await CommitModel.create(commitData)).populate("author", "name");
+}
+
+// Adds a new comment to a specific lead.
+app.post("/leads/:id/comments", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { commentText } = req.body;
+
+    // Validations
+    const validationError = validateCreateComment(id, commentText);
+    if (validationError) {
+      return res.status(400).json({ error: validationError });
+    }
+
+    // Check Lead existance
+    const existingLead = await LeadModel.findById(id);
+    if (!existingLead) {
+      return res.status(404).json({ error: `Lead with ID '${id}' not found.` });
+    }
+
+    // Create commit
+    const commit = await createNewCommit({
+      lead: id,
+      author: existingLead.salesAgent,
+      commentText,
+    });
+
+    return res.status(201).json({
+      id: commit._id,
+      commentText: commit.commentText,
+      author: commit.author.name,
+      createdAt: commit.createdAt,
+    });
   } catch (error) {
     return res
       .status(500)
