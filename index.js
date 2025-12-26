@@ -161,7 +161,7 @@ app.put("/leads/:id", async (req, res) => {
       return res.status(400).json({ error: validationError });
     }
 
-    // Check Lead existance
+    // Check Lead existence
     const existingLead = await LeadModel.findById(id);
     if (!existingLead) {
       return res.status(404).json({
@@ -169,12 +169,23 @@ app.put("/leads/:id", async (req, res) => {
       });
     }
 
-    // Check sales agent existance
+    // Check sales agent existence
     const agent = await SalesAgentModel.findById(salesAgent);
     if (!agent) {
       return res.status(404).json({
         error: `Sales agent with ID '${salesAgent}' not found.`,
       });
+    }
+
+    // Handle closedAt logic
+    let closedAt = existingLead.closedAt;
+    // If moving to Closed for the first time
+    if (status === "Closed" && !closedAt) {
+      closedAt = new Date();
+    }
+    // If the lead is no longer Closed (reopened)
+    if (status !== "Closed") {
+      closedAt = null;
     }
 
     const updatedLead = await updateLeadById(id, {
@@ -185,6 +196,7 @@ app.put("/leads/:id", async (req, res) => {
       tags: Array.isArray(tags) ? tags : [],
       timeToClose,
       priority,
+      closedAt,
     });
 
     return res.status(200).json({
@@ -368,6 +380,36 @@ app.get("/leads/:id/comments", async (req, res) => {
     }));
 
     return res.status(200).json(formattedComments);
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ error: error.message, message: "Internal Server Error" });
+  }
+});
+
+async function getLeadsClosedLastWeek() {
+  const savenDaysAgo = new Date();
+  savenDaysAgo.setDate(savenDaysAgo.getDate() - 7);
+
+  return await LeadModel.find({
+    status: "Closed",
+    closedAt: { $gte: savenDaysAgo },
+  });
+}
+
+// Get Leads Closed Last Week
+app.get("/report/last-week", async (req, res) => {
+  try {
+    const closedLeads = await getLeadsClosedLastWeek();
+
+    const formattedClosedLeads = closedLeads.map((lead) => ({
+      id: lead._id,
+      name: lead.name,
+      salesAgent: lead.salesAgent,
+      closedAt: lead.closedAt,
+    }));
+
+    return res.status(200).json(formattedClosedLeads);
   } catch (error) {
     return res
       .status(500)
