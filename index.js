@@ -393,7 +393,7 @@ async function getLeadsClosedLastWeek() {
 
   return await LeadModel.find({
     status: "Closed",
-    closedAt: { $gte: savenDaysAgo },
+    updatedAt: { $gte: savenDaysAgo },
   }).populate("salesAgent", "name");
 }
 
@@ -427,6 +427,45 @@ app.get("/report/pipeline", async (req, res) => {
     const totalLeadsInPipeline = await getTotalLeadsInPipeline();
 
     return res.status(200).json({ totalLeadsInPipeline });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ error: error.message, message: "Internal Server Error" });
+  }
+});
+
+async function getClosedLeadsByAgent() {
+  const leads = await LeadModel.find({ status: "Closed" }).populate(
+    "salesAgent",
+    "name"
+  );
+
+  const result = {};
+
+  leads.forEach((lead) => {
+    const agentId = lead.salesAgent._id;
+    const agentName = lead.salesAgent.name;
+
+    if (!result[agentId]) {
+      result[agentId] = {
+        salesAgentId: agentId,
+        salesAgentName: agentName,
+        closedLeadsCount: 0,
+      };
+    }
+
+    result[agentId].closedLeadsCount++;
+  });
+
+  return Object.values(result);
+}
+
+// Fetch the number of leads closed by each sales agent.
+app.get("/report/closed-by-agent", async (req, res) => {
+  try {
+    const closedLeadsByAgent = await getClosedLeadsByAgent();
+
+    return res.status(200).json(closedLeadsByAgent);
   } catch (error) {
     return res
       .status(500)
