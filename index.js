@@ -22,7 +22,7 @@ initializeDatabase();
 app.use(express.json());
 app.use(
   cors({
-    origin: "https://clientflow-crm-backend.vercel.app/",
+    origin: "http://localhost:5173/",
     credentials: true,
   })
 );
