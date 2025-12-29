@@ -1,4 +1,5 @@
 const express = require("express");
+const cors = require("cors");
 const { initializeDatabase } = require("./db/db.connect");
 const LeadModel = require("./models/lead.model");
 const SalesAgentModel = require("./models/salesAgent.model");
@@ -19,6 +20,12 @@ const app = express();
 initializeDatabase();
 
 app.use(express.json());
+app.use(
+  cors({
+    origin: "https://clientflow-crm-backend.vercel.app/",
+    credentials: true,
+  })
+);
 
 async function createNewLead(newLeadData) {
   const newLead = new LeadModel(newLeadData);
