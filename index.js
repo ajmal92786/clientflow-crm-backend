@@ -90,14 +90,20 @@ app.post("/leads", async (req, res) => {
   }
 });
 
-async function getAllLeads(filters) {
-  return await LeadModel.find(filters).populate("salesAgent", "name");
+async function getAllLeads(filters, sortBy) {
+  const query = await LeadModel.find(filters).populate("salesAgent", "name");
+
+  if (sortBy === "timeToClose") {
+    query.sort({ timeToClose: 1 });
+  }
+
+  return query;
 }
 
 // Fetches all leads with optional filtering.
 app.get("/leads", async (req, res) => {
   try {
-    const { salesAgent, status, tags, source } = req.query;
+    const { salesAgent, status, source, priority, sortBy, tags } = req.query;
 
     // Validations
     const validationError = validateLeadQuery(req.query);
@@ -121,9 +127,10 @@ app.get("/leads", async (req, res) => {
     if (salesAgent) filters.salesAgent = salesAgent;
     if (source) filters.source = source;
     if (status) filters.status = status;
+    if (priority) filters.priority = priority;
     if (tags) filters.tags = tags;
 
-    const leads = await getAllLeads(filters);
+    const leads = await getAllLeads(filters, sortBy);
 
     const formattedLeads = leads.map((lead) => ({
       id: lead._id,

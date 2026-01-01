@@ -54,7 +54,7 @@ function validateCreateLead(body) {
 }
 
 function validateLeadQuery(query) {
-  const { salesAgent, status, source } = query;
+  const { salesAgent, status, source, priority, sortBy } = query;
 
   if (salesAgent && !isObjectIdValid(salesAgent)) {
     return "Invalid salesAgent ID ";
@@ -66,6 +66,14 @@ function validateLeadQuery(query) {
 
   if (source && !allowedSources.includes(source)) {
     return "Invalid input: 'source' must be one of ['Website', 'Referral', 'Cold Call', 'Advertisement', 'Email', 'Other'].";
+  }
+
+  if (priority && !allowedPriorities.includes(priority)) {
+    return "Invalid input: 'priority' must be one of ['High', 'Medium', 'Low'].";
+  }
+
+  if (sortBy && sortBy !== "timeToClose") {
+    return "Invalid input: 'sortBy' must be timeToClose.";
   }
 
   return null;
