@@ -90,20 +90,26 @@ app.post("/leads", async (req, res) => {
   }
 });
 
-async function getAllLeads(filters, sortBy) {
-  const query = await LeadModel.find(filters).populate("salesAgent", "name");
+// async function getAllLeads(filters, sortBy) {
+//  return await LeadModel.find(filters).populate("salesAgent", "name");
+// }
+
+async function getAllLeads(filters, sortBy, order) {
+  let query = LeadModel.find(filters).populate("salesAgent", "name");
 
   if (sortBy === "timeToClose") {
-    query.sort({ timeToClose: 1 });
+    const sortOrder = order === "desc" ? -1 : 1;
+    query = query.sort({ timeToClose: sortOrder });
   }
 
-  return query;
+  return await query;
 }
 
 // Fetches all leads with optional filtering.
 app.get("/leads", async (req, res) => {
   try {
-    const { salesAgent, status, source, priority, sortBy, tags } = req.query;
+    const { salesAgent, status, source, priority, sortBy, order, tags } =
+      req.query;
 
     // Validations
     const validationError = validateLeadQuery(req.query);
@@ -130,7 +136,7 @@ app.get("/leads", async (req, res) => {
     if (priority) filters.priority = priority;
     if (tags) filters.tags = tags;
 
-    const leads = await getAllLeads(filters, sortBy);
+    const leads = await getAllLeads(filters, sortBy, order);
 
     const formattedLeads = leads.map((lead) => ({
       id: lead._id,
@@ -149,6 +155,7 @@ app.get("/leads", async (req, res) => {
 
     return res.status(200).json(formattedLeads);
   } catch (error) {
+    console.log(error);
     return res
       .status(500)
       .json({ error: error.message, message: "Internal Server Error" });

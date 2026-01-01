@@ -54,7 +54,7 @@ function validateCreateLead(body) {
 }
 
 function validateLeadQuery(query) {
-  const { salesAgent, status, source, priority, sortBy } = query;
+  const { salesAgent, status, source, priority, sortBy, order } = query;
 
   if (salesAgent && !isObjectIdValid(salesAgent)) {
     return "Invalid salesAgent ID ";
@@ -74,6 +74,10 @@ function validateLeadQuery(query) {
 
   if (sortBy && sortBy !== "timeToClose") {
     return "Invalid input: 'sortBy' must be timeToClose.";
+  }
+
+  if (order && !["asc", "desc"].includes(order)) {
+    return "Invalid input: 'order' must be one of ['asc', 'desc'].";
   }
 
   return null;
