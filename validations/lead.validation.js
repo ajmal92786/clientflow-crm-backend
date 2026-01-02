@@ -83,6 +83,15 @@ function validateLeadQuery(query) {
   return null;
 }
 
+function validateLeadById(params) {
+  const { id } = params;
+  if (!id || !isObjectIdValid(id)) {
+    return "Invalid lead ID";
+  }
+
+  return null;
+}
+
 function validateUpdateLead(params, body) {
   const { id } = params;
 
@@ -104,6 +113,7 @@ function validateDeleteLead(params) {
 module.exports = {
   validateCreateLead,
   validateLeadQuery,
+  validateLeadById,
   validateUpdateLead,
   validateDeleteLead,
 };

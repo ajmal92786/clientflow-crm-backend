@@ -9,6 +9,7 @@ const {
   validateLeadQuery,
   validateUpdateLead,
   validateDeleteLead,
+  validateLeadById,
 } = require("./validations/lead.validation");
 const { validateCreateAgent } = require("./validations/agent.validation");
 const {
@@ -90,10 +91,6 @@ app.post("/leads", async (req, res) => {
   }
 });
 
-// async function getAllLeads(filters, sortBy) {
-//  return await LeadModel.find(filters).populate("salesAgent", "name");
-// }
-
 async function getAllLeads(filters, sortBy, order) {
   let query = LeadModel.find(filters).populate("salesAgent", "name");
 
@@ -155,7 +152,55 @@ app.get("/leads", async (req, res) => {
 
     return res.status(200).json(formattedLeads);
   } catch (error) {
-    console.log(error);
+    return res
+      .status(500)
+      .json({ error: error.message, message: "Internal Server Error" });
+  }
+});
+
+async function findLeadById(leadId) {
+  return await LeadModel.findById(leadId).populate("salesAgent", "name");
+}
+
+// Fetch a lead by its ID.
+app.get("/leads/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Validations
+    const validationError = validateLeadById(req.params);
+
+    if (validationError) {
+      return res.status(400).json({ error: validationError });
+    }
+
+    const lead = await findLeadById(id);
+
+    if (!lead) {
+      return res.status(404).json({
+        error: `Lead with ID '${id}' not found.`,
+      });
+    }
+
+    return res.status(200).json({
+      id: lead._id,
+      name: lead.name,
+      source: lead.source,
+      salesAgent: lead.salesAgent
+        ? {
+            id: lead.salesAgent._id,
+            name: lead.salesAgent.name,
+          }
+        : null,
+      status: lead.status,
+      tags: lead.tags,
+      timeToClose: lead.timeToClose,
+      priority: lead.priority,
+      createdAt: lead.createdAt,
+      updatedAt: lead.updatedAt,
+      closedAt: lead.closedAt,
+    });
+  } catch (error) {
     return res
       .status(500)
       .json({ error: error.message, message: "Internal Server Error" });
