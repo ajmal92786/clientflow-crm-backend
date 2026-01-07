@@ -4,9 +4,13 @@ function isObjectIdValid(id) {
   return mongoose.Types.ObjectId.isValid(id);
 }
 
-function validateCreateComment(leadId, commentText) {
+function validateCreateComment(leadId, commentText, salesAgent) {
   if (!isObjectIdValid(leadId)) {
     return "Lead ID must be a valid ObjectId.";
+  }
+
+  if (!isObjectIdValid(salesAgent)) {
+    return "Sales Agent ID must be a valid ObjectId.";
   }
 
   if (!commentText || typeof commentText !== "string") {

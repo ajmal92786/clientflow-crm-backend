@@ -387,10 +387,10 @@ async function createNewCommit(commitData) {
 app.post("/leads/:id/comments", async (req, res) => {
   try {
     const { id } = req.params;
-    const { commentText } = req.body;
+    const { commentText, salesAgent } = req.body;
 
     // Validations
-    const validationError = validateCreateComment(id, commentText);
+    const validationError = validateCreateComment(id, commentText,salesAgent);
     if (validationError) {
       return res.status(400).json({ error: validationError });
     }
@@ -401,10 +401,18 @@ app.post("/leads/:id/comments", async (req, res) => {
       return res.status(404).json({ error: `Lead with ID '${id}' not found.` });
     }
 
+    // Check sales agent existence
+    const agent = await SalesAgentModel.findById(salesAgent);
+    if (!agent) {
+      return res.status(404).json({
+        error: `Sales agent with ID '${salesAgent}' not found.`,
+      });
+    }
+
     // Create commit
     const commit = await createNewCommit({
       lead: id,
-      author: existingLead.salesAgent,
+      author: salesAgent,
       commentText,
     });
 
