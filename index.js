@@ -390,7 +390,7 @@ app.post("/leads/:id/comments", async (req, res) => {
     const { commentText, salesAgent } = req.body;
 
     // Validations
-    const validationError = validateCreateComment(id, commentText,salesAgent);
+    const validationError = validateCreateComment(id, commentText, salesAgent);
     if (validationError) {
       return res.status(400).json({ error: validationError });
     }
@@ -495,12 +495,17 @@ async function getTotalLeadsInPipeline() {
   return await LeadModel.countDocuments({ status: { $ne: "Closed" } });
 }
 
+async function getTotalClosedLeads() {
+  return await LeadModel.countDocuments({ status: "Closed" });
+}
+
 // Get Total Leads in Pipeline
 app.get("/report/pipeline", async (req, res) => {
   try {
     const totalLeadsInPipeline = await getTotalLeadsInPipeline();
+    const totalClosedLeads = await getTotalClosedLeads();
 
-    return res.status(200).json({ totalLeadsInPipeline });
+    return res.status(200).json({ totalLeadsInPipeline, totalClosedLeads });
   } catch (error) {
     return res
       .status(500)
