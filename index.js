@@ -405,6 +405,13 @@ app.delete("/agents/:id", async (req, res) => {
       });
     }
 
+    const leadCount = await LeadModel.countDocuments({ salesAgent: id });
+    if (leadCount > 0) {
+      return res
+        .status(400)
+        .json({ message: "Cannot delete agent with assigned leads" });
+    }
+
     await deleteSalesAgentById(id);
 
     return res
