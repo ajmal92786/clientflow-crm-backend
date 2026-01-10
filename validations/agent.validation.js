@@ -1,6 +1,12 @@
+const mongoose = require("mongoose");
+
 function isValidEmail(email) {
   const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
   return regex.test(email);
+}
+
+function isObjectIdValid(id) {
+  return mongoose.Types.ObjectId.isValid(id);
 }
 
 function validateCreateAgent(body) {
@@ -15,4 +21,12 @@ function validateCreateAgent(body) {
   }
 }
 
-module.exports = { validateCreateAgent };
+function validateAgentDelete(params) {
+  const { id } = params;
+
+  if (!isObjectIdValid(id)) {
+    return "Invalid salesAgent ID";
+  }
+}
+
+module.exports = { validateCreateAgent, validateAgentDelete };

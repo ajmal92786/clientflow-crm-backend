@@ -11,7 +11,10 @@ const {
   validateDeleteLead,
   validateLeadById,
 } = require("./validations/lead.validation");
-const { validateCreateAgent } = require("./validations/agent.validation");
+const {
+  validateCreateAgent,
+  validateAgentDelete,
+} = require("./validations/agent.validation");
 const {
   validateCreateComment,
   validateGetComments,
@@ -372,6 +375,41 @@ app.get("/agents", async (req, res) => {
     }));
 
     return res.status(200).json(formattedAgents);
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ error: error.message, message: "Internal Server Error" });
+  }
+});
+
+async function deleteSalesAgentById(id) {
+  return await SalesAgentModel.findByIdAndDelete(id);
+}
+
+// Delete a specific sales agent by its ID
+app.delete("/agents/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // validations
+    const validationError = validateAgentDelete(req.params);
+    if (validationError) {
+      return res.status(400).json({ error: validationError });
+    }
+
+    // Check sales agent existence
+    const agent = await SalesAgentModel.findById(id);
+    if (!agent) {
+      return res.status(404).json({
+        error: `Sales agent with ID '${id}' not found.`,
+      });
+    }
+
+    await deleteSalesAgentById(id);
+
+    return res
+      .status(200)
+      .json({ message: "Sales agent deleted successfully." });
   } catch (error) {
     return res
       .status(500)
