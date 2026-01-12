@@ -142,10 +142,12 @@ app.get("/leads", async (req, res) => {
       id: lead._id,
       name: lead.name,
       source: lead.source,
-      salesAgent: {
-        id: lead.salesAgent._id,
-        name: lead.salesAgent.name,
-      },
+      salesAgent: lead.salesAgent
+        ? {
+            id: lead.salesAgent._id,
+            name: lead.salesAgent.name,
+          }
+        : null,
       status: lead.status,
       tags: lead.tags,
       timeToClose: lead.timeToClose,
@@ -403,13 +405,6 @@ app.delete("/agents/:id", async (req, res) => {
       return res.status(404).json({
         error: `Sales agent with ID '${id}' not found.`,
       });
-    }
-
-    const leadCount = await LeadModel.countDocuments({ salesAgent: id });
-    if (leadCount > 0) {
-      return res
-        .status(400)
-        .json({ message: "Cannot delete agent with assigned leads" });
     }
 
     await deleteSalesAgentById(id);
