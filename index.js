@@ -76,10 +76,12 @@ app.post("/leads", async (req, res) => {
       id: lead._id,
       name: lead.name,
       source: lead.source,
-      salesAgent: {
-        id: lead.salesAgent._id,
-        name: lead.salesAgent.name,
-      },
+      salesAgent: lead.salesAgent
+        ? {
+            id: lead.salesAgent._id,
+            name: lead.salesAgent.name,
+          }
+        : null,
       status: lead.status,
       tags: lead.tags,
       timeToClose: lead.timeToClose,
@@ -274,10 +276,12 @@ app.put("/leads/:id", async (req, res) => {
       id: updatedLead._id,
       name: updatedLead.name,
       source: updatedLead.source,
-      salesAgent: {
-        id: updatedLead.salesAgent._id,
-        name: updatedLead.salesAgent.name,
-      },
+      salesAgent: updatedLead.salesAgent
+        ? {
+            id: updatedLead.salesAgent._id,
+            name: updatedLead.salesAgent.name,
+          }
+        : null,
       status: updatedLead.status,
       tags: updatedLead.tags,
       timeToClose: updatedLead.timeToClose,
@@ -562,6 +566,8 @@ async function getClosedLeadsByAgent() {
   const result = {};
 
   leads.forEach((lead) => {
+    if (!lead.salesAgent) return; // skip unassigned leads
+
     const agentId = lead.salesAgent._id;
     const agentName = lead.salesAgent.name;
 
